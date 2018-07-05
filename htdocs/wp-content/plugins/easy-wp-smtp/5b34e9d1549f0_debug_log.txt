@@ -1,0 +1,8 @@
+Easy WP SMTP debug log file
+
+
+------------------------------------------------------------------------------------------------------
+Domain check failed: website domain (www.alternateeve.com) is not in allowed domains list.
+SMTP settings won't be used.
+------------------------------------------------------------------------------------------------------
+
