@@ -1,5 +1,27 @@
 .sem_table{
-    border: none; 
-    box-shadow: none; 
-    width: 100%;
+    border: none !important; 
+    box-shadow: none !important; 
+    width: 100% !important;
+}
+.sem_input{
+    width: 100% !important;
+}
+/*td {
+   border:1px solid red; 
+}*/
+.sem_area{
+    background: #5d5757;
+    color: white;
+    height: 10.5rem;
+}
+.disabled-select {
+   background-color:#d5d5d5;
+   opacity:0.5;
+   border-radius:3px;
+   cursor:not-allowed;
+   position:absolute;
+   top:0;
+   bottom:0;
+   right:0;
+   left:0;
 }
