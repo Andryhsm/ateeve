@@ -4,8 +4,8 @@ class Landing_Page_Info
 {
     public function __construct()
     {
-    	//include_once plugin_dir_path( __FILE__ ).'sem_keywords.php';
-	    //include_once plugin_dir_path( __FILE__ ).'sem_varname.php';
+    	include_once plugin_dir_path( __FILE__ ).'sem_keywords.php';
+	    include_once plugin_dir_path( __FILE__ ).'sem_varname.php';
         //Ajout menu
         add_action('admin_menu', array($this, 'add_admin_menu'));
 
@@ -24,7 +24,8 @@ class Landing_Page_Info
 	{
 	    $hook = add_menu_page('SEM Tools setting', 'SEM Tools', 'manage_options', 'sem_tools', array($this, 'menu_html'));
 	    add_action('load-'.$hook, array($this, 'process_action'));
-	    add_action('load-'.$hook, array($this, 'save_variables'));
+	    add_action('load-'.$hook, array('Sem_Varname', 'init_varnames'));
+	    add_action('load-'.$hook, array('Sem_Keyword', 'save_keywords'));
 	    
 	    //add_action('admin_enqueue_scripts', 'sem_scripts_styles');
 		wp_register_style( 'custom-style', plugins_url( '../public/css/style.css', __FILE__ ) );
@@ -191,19 +192,19 @@ class Landing_Page_Info
 						<input type="text" readonly name="url[]" placeholder="url1" class="sem_table url1"/>
 					</td>
 					<td>
-						<input type="text" name="keyword[1][]" placeholder="var1.1" class="sem_table" id="var1.1"/>
+						<input type="text" name="keyword[1][1]" placeholder="var1.1" class="sem_table" id="var1.1" value="<?php Sem_Keyword::get_keyword(1, 1) ?>" />
 					</td>
 					<td>
-						<input type="text" name="keyword[1][]" placeholder="var1.2" class="sem_table" id="var1.2"/>
+						<input type="text" name="keyword[1][2]" placeholder="var1.2" class="sem_table" id="var1.2" value="<?php Sem_Keyword::get_keyword(1, 2) ?>" />
 					</td>
 					<td>
-						<input type="text" name="keyword[1][]" placeholder="var1.3" class="sem_table" id="var1.3"/>
+						<input type="text" name="keyword[1][3]" placeholder="var1.3" class="sem_table" id="var1.3" value="<?php Sem_Keyword::get_keyword(1, 3) ?>" />
 					</td>
 					<td>
-						<input type="text" name="keyword[1][]" placeholder="var1.4" class="sem_table" id="var1.4"/>
+						<input type="text" name="keyword[1][4]" placeholder="var1.4" class="sem_table" id="var1.4" value="<?php Sem_Keyword::get_keyword(1, 4) ?>" />
 					</td>
 					<td>
-						<input type="text" name="keyword[1][]" placeholder="var1.5" class="sem_table" id="var1.5"/>
+						<input type="text" name="keyword[1][5]" placeholder="var1.5" class="sem_table" id="var1.5" value="<?php Sem_Keyword::get_keyword(1, 5) ?>" />
 					</td>
 				</tr>
 				<tr>
@@ -211,19 +212,23 @@ class Landing_Page_Info
 						<input type="text" readonly name="url[]" placeholder="url1" class="sem_table url2"/>
 					</td>
 					<td>
-						<input type="text" name="keyword[2][]" placeholder="var2.1" class="sem_table"/>
+						<input type="text" name="keyword[2][1]" placeholder="var2.1" class="sem_table" value="<?php Sem_Keyword::get_keyword(2, 1) ?>"/>
 					</td>
 					<td>
-						<input type="text" name="keyword[2][]" placeholder="var2.2" class="sem_table"/>
+						<input type="text" name="keyword[2][2]" placeholder="var2.2" class="sem_table"
+						 value="<?php Sem_Keyword::get_keyword(2, 2) ?>"/>
 					</td>
 					<td>
-						<input type="text" name="keyword[2][]" placeholder="var2.3" class="sem_table"/>
+						<input type="text" name="keyword[2][3]" placeholder="var2.3" class="sem_table"
+						 value="<?php Sem_Keyword::get_keyword(2, 3) ?>"/>
 					</td>
 					<td>
-						<input type="text" name="keyword[2][]" placeholder="var2.4" class="sem_table"/>
+						<input type="text" name="keyword[2][4]" placeholder="var2.4" class="sem_table"
+						 value="<?php Sem_Keyword::get_keyword(2, 4) ?>"/>
 					</td>
 					<td>
-						<input type="text" name="keyword[2][]" placeholder="var2.5" class="sem_table"/>
+						<input type="text" name="keyword[2][5]" placeholder="var2.5" class="sem_table"
+						 value="<?php Sem_Keyword::get_keyword(2, 5) ?>"/>
 					</td>
 				</tr>
 				<tr>
@@ -231,19 +236,24 @@ class Landing_Page_Info
 						<input type="text" readonly name="url[]" placeholder="url1" class="sem_table url3"/>
 					</td>
 					<td>
-						<input type="text" name="keyword[3][]" placeholder="var3.1" class="sem_table"/>
+						<input type="text" name="keyword[3][1]" placeholder="var3.1" class="sem_table" 
+						value="<?php Sem_Keyword::get_keyword(3, 1) ?>"/>
 					</td>
 					<td>
-						<input type="text" name="keyword[3][]" placeholder="var3.2" class="sem_table"/>
+						<input type="text" name="keyword[3][2]" placeholder="var3.2" class="sem_table"
+						 value="<?php Sem_Keyword::get_keyword(3, 2) ?>"/>
 					</td>
 					<td>
-						<input type="text" name="keyword[3][]" placeholder="var3.3" class="sem_table"/>
+						<input type="text" name="keyword[3][3]" placeholder="var3.3" class="sem_table"
+						 value="<?php Sem_Keyword::get_keyword(3, 3) ?>"/>
 					</td>
 					<td>
-						<input type="text" name="keyword[3][]" placeholder="var3.4" class="sem_table"/>
+						<input type="text" name="keyword[3][4]" placeholder="var3.4" class="sem_table"
+						 value="<?php Sem_Keyword::get_keyword(3, 4) ?>"/>
 					</td>
 					<td>
-						<input type="text" name="keyword[3][]" placeholder="var3.5" class="sem_table"/>
+						<input type="text" name="keyword[3][5]" placeholder="var3.5" class="sem_table"
+						 value="<?php Sem_Keyword::get_keyword(3, 5) ?>"/>
 					</td>
 				</tr>
 				<tr>
@@ -251,19 +261,24 @@ class Landing_Page_Info
 						<input type="text" readonly name="url[]" placeholder="url1" class="sem_table url4"/>
 					</td>
 					<td>
-						<input type="text" name="keyword[4][]" placeholder="var4.1" class="sem_table"/>
+						<input type="text" name="keyword[4][1]" placeholder="var4.1" class="sem_table"
+						 value="<?php Sem_Keyword::get_keyword(4, 1) ?>"/>
 					</td>
 					<td>
-						<input type="text" name="keyword[4][]" placeholder="var4.2" class="sem_table"/>
+						<input type="text" name="keyword[4][2]" placeholder="var4.2" class="sem_table"
+						 value="<?php Sem_Keyword::get_keyword(4, 2) ?>"/>
 					</td>
 					<td>
-						<input type="text" name="keyword[4][]" placeholder="var4.3" class="sem_table"/>
+						<input type="text" name="keyword[4][3]" placeholder="var4.3" class="sem_table"
+						 value="<?php Sem_Keyword::get_keyword(4, 3) ?>"/>
 					</td>
 					<td>
-						<input type="text" name="keyword[4][]" placeholder="var4.4" class="sem_table"/>
+						<input type="text" name="keyword[4][4]" placeholder="var4.4" class="sem_table"
+						 value="<?php Sem_Keyword::get_keyword(4, 4) ?>"/>
 					</td>
 					<td>
-						<input type="text" name="keyword[4][]" placeholder="var4.5" class="sem_table"/>
+						<input type="text" name="keyword[4][5]" placeholder="var4.5" class="sem_table"
+						 value="<?php Sem_Keyword::get_keyword(4, 5) ?>"/>
 					</td>
 				</tr>
 				<tr>
@@ -271,19 +286,24 @@ class Landing_Page_Info
 						<input type="text" readonly name="url[]" placeholder="url1" class="sem_table url5"/>
 					</td>
 					<td>
-						<input type="text" name="keyword[5][]" placeholder="var5.1" class="sem_table"/>
+						<input type="text" name="keyword[5][1]" placeholder="var5.1" class="sem_table"
+						 value="<?php Sem_Keyword::get_keyword(5, 1) ?>"/>
 					</td>
 					<td>
-						<input type="text" name="keyword[5][]" placeholder="var5.2" class="sem_table"/>
+						<input type="text" name="keyword[5][2]" placeholder="var5.2" class="sem_table"
+						 value="<?php Sem_Keyword::get_keyword(5, 2) ?>" />
 					</td>
 					<td>
-						<input type="text" name="keyword[5][]" placeholder="var5.3" class="sem_table"/>
+						<input type="text" name="keyword[5][3]" placeholder="var5.3" class="sem_table"
+						 value="<?php Sem_Keyword::get_keyword(5, 3) ?>" />
 					</td>
 					<td>
-						<input type="text" name="keyword[5][]" placeholder="var5.4" class="sem_table"/>
+						<input type="text" name="keyword[5][4]" placeholder="var5.4" class="sem_table"
+						 value="<?php Sem_Keyword::get_keyword(5, 4) ?>" />
 					</td>
 					<td>
-						<input type="text" name="keyword[5][]" placeholder="var5.5" class="sem_table"/>
+						<input type="text" name="keyword[5][5]" placeholder="var5.5" class="sem_table"
+						 value="<?php Sem_Keyword::get_keyword(5, 5) ?>" />
 					</td>
 				</tr>
 			</tbody>
