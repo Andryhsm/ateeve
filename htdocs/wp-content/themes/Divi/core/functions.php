@@ -1,5 +1,4 @@
 <?php
-
 if ( ! function_exists( 'et_allow_ampersand' ) ) :
 /**
  * Convert &amp; into &

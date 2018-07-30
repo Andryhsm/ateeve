@@ -6,38 +6,55 @@ class Landing_Page_Info
     {
     	include_once plugin_dir_path( __FILE__ ).'sem_keywords.php';
 	    include_once plugin_dir_path( __FILE__ ).'sem_varname.php';
+	    
         //Ajout menu
         add_action('admin_menu', array($this, 'add_admin_menu'));
-
+		
         //enregistrement form
         add_action('admin_init', array($this, 'register_settings'));
         
         //Modification du meta description 
-        add_action('wp_head', array($this, 'add_meta_tags'));
-      
-        //add_action('get_header', array($this, 'clean_meta_generator'), 100);
-        add_filter('pre_get_document_title', array($this, 'change_the_title'), 999, 1);
+        add_action('get_header', array($this, 'add_meta_tags'));
+     
+        //remplacer le contenu qui possède les variables
+        add_filter('the_content', array($this, 'replace_text_sem_wps')); 
+        add_filter('the_excerpt', array($this, 'replace_text_sem_wps'));
+	    
+        add_filter('pre_get_document_title', array($this,'change_the_title'),20);
+        
+        add_action( 'wp_ajax_delete_keyword_by_row_number', array('Sem_Keyword', 'delete_keyword_by_row_number') );
+		add_action( 'wp_ajax_delete_keyword_by_row_number', array('Sem_Keyword', 'delete_keyword_by_row_number') );
+		wp_localize_script('script', 'ajaxurl', admin_url( 'admin-ajax.php' ) );
     }
 
     //Menu du gauche
     public function add_admin_menu()
 	{
-	    $hook = add_menu_page('SEM Tools setting', 'SEM Tools', 'manage_options', 'sem_tools', array($this, 'menu_html'));
+	    $hook = add_menu_page('Dynamic SEM setting', 'Dynamic SEM', 'manage_options', 'sem_tools', array($this, 'menu_html'));
 	    add_action('load-'.$hook, array($this, 'process_action'));
 	    add_action('load-'.$hook, array('Sem_Varname', 'init_varnames'));
 	    add_action('load-'.$hook, array('Sem_Keyword', 'save_keywords'));
-	    
-	    //add_action('admin_enqueue_scripts', 'sem_scripts_styles');
+	    add_action('load-'.$hook, array($this, 'remove_text_footer_right'));
+		 
+	    //add_action('admin_enqueue_scripts', 'sem_scripts	_styles');
 		wp_register_style( 'custom-style', plugins_url( '../public/css/style.css', __FILE__ ) );
 	    wp_enqueue_style( 'custom-style' );
+	    wp_enqueue_style('jquery_ui', 'https://code.jquery.com/ui/1.12.1/themes/base/jquery-ui.css' );
+	    wp_enqueue_style( 'cssbootstrap4', 'https://stackpath.bootstrapcdn.com/bootstrap/4.1.2/css/bootstrap.min.css' );
+	    wp_enqueue_style('font-awesome', 'https://maxcdn.bootstrapcdn.com/font-awesome/4.6.3/css/font-awesome.min.css');
+	    
+		wp_enqueue_script('jquery_ui', 'https://code.jquery.com/ui/1.12.1/jquery-ui.js', array('jquery') );
+	    wp_enqueue_script('popper', 'https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.14.3/umd/popper.min.js', array('jquery') );
+	    wp_enqueue_script('jsbootstrap4', 'https://stackpath.bootstrapcdn.com/bootstrap/4.1.2/js/bootstrap.min.js', array('jquery') );
 	    
 	    wp_register_script( 'sem_plugin', plugins_url('../public/js/sem_plugin.js', __FILE__), array('jquery'));
     	wp_enqueue_script( 'sem_plugin' );
     	
-    	wp_enqueue_style('select2', 'https://cdnjs.cloudflare.com/ajax/libs/select2/4.0.6-rc.0/css/select2.min.css' );
-		wp_enqueue_script('select2', 'https://cdnjs.cloudflare.com/ajax/libs/select2/4.0.6-rc.0/js/select2.min.js', array('jquery') );
 	}
 
+	public function remove_text_footer_right() {
+		add_action( 'admin_menu', array($this, 'oz_admin_dashboard_footer_right' ), 100);  
+	}
 	//Contenu du menu
 	public function menu_html()
 	{
@@ -51,9 +68,10 @@ class Landing_Page_Info
 	    <?php	    
 	}
 
-	//Le section et champs
+	//Les sections et champs
 	public function register_settings()
 	{
+		
 	    register_setting('sem_tools_settings', 'page_dropdown');
 	    register_setting('sem_tools_settings', 'primary_url');
 	    register_setting('sem_tools_settings', 'modal_url');
@@ -63,14 +81,11 @@ class Landing_Page_Info
 
 	    add_settings_section('sem_tools_section', '', array($this, 'section_html'), 'sem_tools_settings');
 	    add_settings_section('parametre_section', 'Paramètres', array($this, 'parametre_html'),'sem_tools_settings', 'sem_tools_section');
-	    add_settings_section('table_section', 'Tableau Url/Variable', array($this, 'table_html'),'sem_tools_settings', 'sem_tools_section');
+	    add_settings_section('table_section', 'Tableau url/variable', array($this, 'table_html'),'sem_tools_settings', 'sem_tools_section');
 	}
-
-
-	//section parent
+	
 	public function section_html()
-	{
-			
+	{	
 	}
 
 	//contenu section
@@ -80,17 +95,12 @@ class Landing_Page_Info
 		$meta_title = get_post_meta( get_option("page_dropdown"), '_sem_tools_title', true );
 		$meta_description = get_post_meta( get_option("page_dropdown"), '_sem_tools_description', true );
 		$meta_keywords = get_post_meta( get_option("page_dropdown"), '_sem_tools_keywords', true );
-		$text_area_balise = "<head>\n";
-		$text_area_balise .= "<meta name=\"title\" content=\"modèle meta title\">\n";
-		$text_area_balise .= "<meta name=\"description\" content=\"modèle meta description\">\n";
-		$text_area_balise .= "<meta name=\"keywords\" content=\"modèle meta keywords\">\n";
-		$text_area_balise .= "</head>";
 		?>
-	    <table width="100%">
-	    	<tr>
-	    		<td width="15%"><label for="">Page de référence:</label></td>
-	    		<td width="45%">
-	    			<select name="page_dropdown" class="sem_input page_dropdown" autocomplete="off"> 
+		<div class="wrap">
+			<div class="form-group row">
+		    	<label for="" class="col-sm-3 col-form-label">Page de référence:</label>
+		    	<div class="col-sm-6">
+		      		<select name="page_dropdown" class="sem_input page_dropdown form-control" autocomplete="off"> 
 					    <option value=""><?php echo attribute_escape(__('-landing source-')); ?></option>
 			
 					    <?php // Tableau d'arguments pour personalisé la liste des pages
@@ -127,192 +137,171 @@ class Landing_Page_Info
 					    ?>
 			
 					</select>
-				</td>
-				<td width="40%"></td>
-	    	</tr>
-	    	<tr>
-	    		<td><label for="">Chemin URL primaire:</label></td>
-	    		<td><input type="text" name="primary_url" class="sem_input primary_url" value="<?php echo get_option('primary_url') ?>"/></td>
-	    		<td></td>
-	    	</tr>
-	    	<tr>
-	    		<td><label for="">Modèle URL:</label></td>
-	    		<td>
-	    			<select class="sem_modal_url_multiple" name="modal_url[]" multiple="multiple" autocomplete="off">
-	    				<option value="/" selected="selected">/</option>
-	    				<option value="recruter" <?php selected(selected( true, in_array('recruter', get_option('modal_url') ) )) ?>>recruter</option>
-	    				<option value="developpeur" <?php selected(selected( true, in_array('developpeur', get_option('modal_url') ) )) ?>>developpeur</option>
-					   	<option value="$var1" <?php selected(selected( true, in_array('$var1', get_option('modal_url') ) )) ?>>$var1</option>
-					   	<option value="$var2" <?php selected(selected( true, in_array('$var2', get_option('modal_url') ) )) ?>>$var2</option>
-					   	<option value="$var3" <?php selected(selected( true, in_array('$var3', get_option('modal_url') ) )) ?>>$var3</option>
-					   	<option value="$var4" <?php selected(selected( true, in_array('$var4', get_option('modal_url') ) )) ?>>$var4</option>
-					   	<option value="$var5" <?php selected(selected( true, in_array('$var5', get_option('modal_url') ) )) ?>>$var5</option>
-					</select>
-	    		</td>
-	    		<td></td>
-	    	</tr>
-	    	<tr>
-	    		<td><label for="">Modèle Meta Title:</label></td>
-	    		<td><input type="text" name="meta_title" class="sem_input meta_title" value="<?php echo $meta_title ?>"/></td>
-	    		<td width="50%" rowspan="3">
-					<textarea class="sem_input sem_area"><?php echo $text_area_balise ?></textarea>
-				</td>
-	    	</tr>
-	    	<tr>
-	    		<td><label for="">Modèle Meta Description:</label></td>
-	    		<td><textarea name="meta_description" rows="5" class="sem_input meta_description"><?php echo $meta_description ?></textarea></td>
-	    	</tr>
-	    	<tr>
-	    		<td><label for="">Modèle Meta Keywords:</label></td>
-	    		<td><input type="text" name="meta_keywords_url" class="sem_input meta_keywords_url" value="<?php echo $meta_keywords ?>" readonly/></td>
-	    	</tr>
-	    	
-	    </table>
-	    
+		    	</div>
+		  	</div>
+		  	<div class="form-group row">
+		    	<label for="" class="col-sm-3 col-form-label">Chemin url primaire:</label>
+		    	<div class="col-sm-6">
+		      		<div class="input-group">
+					    <div class="input-group-prepend">
+					      <div class="input-group-text" id="btnGroupAddon">/</div>
+					    </div>
+					    <input type="text" name="primary_url" class="form-control" placeholder="url primaire" aria-label="Input group example" aria-describedby="btnGroupAddon" value="<?php echo get_option('primary_url') ?>" autocomplete="off">
+					</div>
+		    	</div>
+		  	</div>
+		  	<div class="form-group row">
+		    	<label for="" class="col-sm-3 col-form-label">Modèle url:</label>
+		    	<div class="col-sm-6">
+		    		<div class="input-group">
+					    <div class="input-group-prepend">
+					      <div class="input-group-text" id="btnGroupAddon">/</div>
+					    </div>
+		      			<input type="text" name="modal_url" class="sem_modal_url form-control" placeholder="modèle url" aria-label="Input group example" aria-describedby="btnGroupAddon" value="<?php  echo (get_option('modal_url')) ? get_option('modal_url') : '' ?>" autocomplete="off"/>
+		      		</div>	
+		    	</div>
+		  	</div>
+		  	<div class="form-group row">
+		    	<label for="" class="col-sm-3 col-form-label">Modèle Meta Title:</label>
+		    	<div class="col-sm-6">
+		      		<input type="text" name="meta_title" class="sem_input meta_title form-control" value="<?php echo $meta_title ?>" autocomplete="off"/>
+		    	</div>
+		  	</div>
+		  	<div class="form-group row">
+		    	<label for="" class="col-sm-3 col-form-label"></label>
+		    	<div class="col-sm-6">
+		      		<input type="checkbox" id="title_check" name="sem_title" <?php echo ((get_option('sem_title') == 'on') ? 'checked':''); ?> autocomplete="off"/>
+	    			<label for="title_check" class="title_label"> Utiliser également pour l'onglet </label>
+		    	</div>
+		  	</div>
+		    <div class="form-group row">
+		    	<label for="" class="col-sm-3 col-form-label">Modèle Meta Description:</label>
+		    	<div class="col-sm-6">
+		      		<textarea name="meta_description" rows="5" class="sem_input meta_description form-control" autocomplete="off"><?php echo $meta_description ?></textarea>
+		    	</div>
+		  	</div>
+			<div class="form-group row">
+		    	<label for="" class="col-sm-3 col-form-label">Modèle Meta Keywords:</label>
+		    	<div class="col-sm-6">
+		      		<input type="text" name="meta_keywords_url" class="sem_input meta_keywords_url form-control" value="<?php echo $meta_keywords ?>" autocomplete="off"/>
+		    	</div>
+		  	</div>
+		    	
+	    </div>
 	    <?php
 	}
 	
 	public function table_html()
-	{	?>
-	    <table class="wp-list-table widefat plugins" id="sem_vars_table">
-			<thead>
-				<tr>
-					<th>URL Temporaire</th>
-					<th>Variable 1</th>
-					<th>Variable 2</th>
-					<th>Variable 3</th>
-					<th>Variable 4</th>
-					<th>Variable 5</th>
-				</tr>
-			</thead>
-		
-			<tbody>
-				<tr>
-					<td>
-						<input type="text" readonly name="url[]" placeholder="url1" class="sem_table url1"/>
-					</td>
-					<td>
-						<input type="text" name="keyword[1][1]" placeholder="var1.1" class="sem_table" id="var1.1" value="<?php Sem_Keyword::get_keyword(1, 1) ?>" />
-					</td>
-					<td>
-						<input type="text" name="keyword[1][2]" placeholder="var1.2" class="sem_table" id="var1.2" value="<?php Sem_Keyword::get_keyword(1, 2) ?>" />
-					</td>
-					<td>
-						<input type="text" name="keyword[1][3]" placeholder="var1.3" class="sem_table" id="var1.3" value="<?php Sem_Keyword::get_keyword(1, 3) ?>" />
-					</td>
-					<td>
-						<input type="text" name="keyword[1][4]" placeholder="var1.4" class="sem_table" id="var1.4" value="<?php Sem_Keyword::get_keyword(1, 4) ?>" />
-					</td>
-					<td>
-						<input type="text" name="keyword[1][5]" placeholder="var1.5" class="sem_table" id="var1.5" value="<?php Sem_Keyword::get_keyword(1, 5) ?>" />
-					</td>
-				</tr>
-				<tr>
-					<td>
-						<input type="text" readonly name="url[]" placeholder="url1" class="sem_table url2"/>
-					</td>
-					<td>
-						<input type="text" name="keyword[2][1]" placeholder="var2.1" class="sem_table" value="<?php Sem_Keyword::get_keyword(2, 1) ?>"/>
-					</td>
-					<td>
-						<input type="text" name="keyword[2][2]" placeholder="var2.2" class="sem_table"
-						 value="<?php Sem_Keyword::get_keyword(2, 2) ?>"/>
-					</td>
-					<td>
-						<input type="text" name="keyword[2][3]" placeholder="var2.3" class="sem_table"
-						 value="<?php Sem_Keyword::get_keyword(2, 3) ?>"/>
-					</td>
-					<td>
-						<input type="text" name="keyword[2][4]" placeholder="var2.4" class="sem_table"
-						 value="<?php Sem_Keyword::get_keyword(2, 4) ?>"/>
-					</td>
-					<td>
-						<input type="text" name="keyword[2][5]" placeholder="var2.5" class="sem_table"
-						 value="<?php Sem_Keyword::get_keyword(2, 5) ?>"/>
-					</td>
-				</tr>
-				<tr>
-					<td>
-						<input type="text" readonly name="url[]" placeholder="url1" class="sem_table url3"/>
-					</td>
-					<td>
-						<input type="text" name="keyword[3][1]" placeholder="var3.1" class="sem_table" 
-						value="<?php Sem_Keyword::get_keyword(3, 1) ?>"/>
-					</td>
-					<td>
-						<input type="text" name="keyword[3][2]" placeholder="var3.2" class="sem_table"
-						 value="<?php Sem_Keyword::get_keyword(3, 2) ?>"/>
-					</td>
-					<td>
-						<input type="text" name="keyword[3][3]" placeholder="var3.3" class="sem_table"
-						 value="<?php Sem_Keyword::get_keyword(3, 3) ?>"/>
-					</td>
-					<td>
-						<input type="text" name="keyword[3][4]" placeholder="var3.4" class="sem_table"
-						 value="<?php Sem_Keyword::get_keyword(3, 4) ?>"/>
-					</td>
-					<td>
-						<input type="text" name="keyword[3][5]" placeholder="var3.5" class="sem_table"
-						 value="<?php Sem_Keyword::get_keyword(3, 5) ?>"/>
-					</td>
-				</tr>
-				<tr>
-					<td>
-						<input type="text" readonly name="url[]" placeholder="url1" class="sem_table url4"/>
-					</td>
-					<td>
-						<input type="text" name="keyword[4][1]" placeholder="var4.1" class="sem_table"
-						 value="<?php Sem_Keyword::get_keyword(4, 1) ?>"/>
-					</td>
-					<td>
-						<input type="text" name="keyword[4][2]" placeholder="var4.2" class="sem_table"
-						 value="<?php Sem_Keyword::get_keyword(4, 2) ?>"/>
-					</td>
-					<td>
-						<input type="text" name="keyword[4][3]" placeholder="var4.3" class="sem_table"
-						 value="<?php Sem_Keyword::get_keyword(4, 3) ?>"/>
-					</td>
-					<td>
-						<input type="text" name="keyword[4][4]" placeholder="var4.4" class="sem_table"
-						 value="<?php Sem_Keyword::get_keyword(4, 4) ?>"/>
-					</td>
-					<td>
-						<input type="text" name="keyword[4][5]" placeholder="var4.5" class="sem_table"
-						 value="<?php Sem_Keyword::get_keyword(4, 5) ?>"/>
-					</td>
-				</tr>
-				<tr>
-					<td>
-						<input type="text" readonly name="url[]" placeholder="url1" class="sem_table url5"/>
-					</td>
-					<td>
-						<input type="text" name="keyword[5][1]" placeholder="var5.1" class="sem_table"
-						 value="<?php Sem_Keyword::get_keyword(5, 1) ?>"/>
-					</td>
-					<td>
-						<input type="text" name="keyword[5][2]" placeholder="var5.2" class="sem_table"
-						 value="<?php Sem_Keyword::get_keyword(5, 2) ?>" />
-					</td>
-					<td>
-						<input type="text" name="keyword[5][3]" placeholder="var5.3" class="sem_table"
-						 value="<?php Sem_Keyword::get_keyword(5, 3) ?>" />
-					</td>
-					<td>
-						<input type="text" name="keyword[5][4]" placeholder="var5.4" class="sem_table"
-						 value="<?php Sem_Keyword::get_keyword(5, 4) ?>" />
-					</td>
-					<td>
-						<input type="text" name="keyword[5][5]" placeholder="var5.5" class="sem_table"
-						 value="<?php Sem_Keyword::get_keyword(5, 5) ?>" />
-					</td>
-				</tr>
-			</tbody>
-		
-			<tfoot>
-				
-			</tfoot>
-		
-		</table>
+	{
+	   //Change footer script
+	   add_filter( 'admin_footer_text', array($this, 'oz_alter_wp_admin_bottom_left_text' ));
+	   add_action( 'admin_menu', array($this, 'oz_admin_dashboard_footer_right' ), 999); 
+	   $keyword_count = Sem_Keyword::get_all_sem_keyword();
+	   $varname_count = Sem_Keyword::get_all_sem_varname();
+	   ?>
+		<div class="wrap">
+		    <table class="wp-list-table widefat plugins striped" id="sem_variables_table">
+				<thead>
+					<tr>
+						<th><input type="checkbox" class="check all_check" name="active[]" autocomplete="off"></th>
+						<th width="30%">URL Temporaire</th>
+						<th>
+							[variable1]
+							<i class="fa fa-pencil-square-o" data-toggle="tooltip" data-placement="top" title="Copier le variable" onclick="copyVariable(this, '[variable1]');"></i> 
+						</th>
+						<th>
+							[variable2]
+							<i class="fa fa-pencil-square-o" data-toggle="tooltip" data-placement="top" title="Copier le variable" onclick="copyVariable(this, '[variable2]');"></i> 
+						</th>
+						<th> 
+							[variable3]
+							<i class="fa fa-pencil-square-o" data-toggle="tooltip" data-placement="top" title="Copier le variable" onclick="copyVariable(this, '[variable3]');"></i> 
+						</th>
+						<th>
+							[variable4]
+							<i class="fa fa-pencil-square-o" data-toggle="tooltip" data-placement="top" title="Copier le variable" onclick="copyVariable(this, '[variable4]');"></i> 
+						</th>
+						<th>
+							[variable5]
+							<i class="fa fa-pencil-square-o" data-toggle="tooltip" data-placement="top" title="Copier le variable" onclick="copyVariable(this, '[variable5]');"></i> 
+						</th>
+						<th>
+						</th>
+					</tr>
+				</thead>
+			
+				<tbody>
+					<?php if($keyword_count > 0) { ?>
+						<?php for($i = 1 ; $i <= $keyword_count ; $i++) { ?>
+						<tr class="row-tab" data-line="<?php echo $i; ?>">
+							<td><input type="checkbox" class="check" name="lp_item[]" value="<?php echo $i; ?>" autocomplete="off"></td>
+							<td>
+								<input type="text" readonly name="url[<?php echo $i; ?>]" placeholder="url<?php echo $i; ?>" class="sem_table temporary_url url<?php echo $i; ?>"/>
+							</td>
+							<?php for($j = 1 ; $j <= $varname_count ; $j++) { ?>
+								<td>
+									<input type="text" name="keyword[<?php echo $i; ?>][<?php echo $j; ?>]" placeholder="variable<?php echo $j; ?>.<?php echo $i; ?>" class="sem_table" data_var="variable<?php echo $j; ?>" value="<?php echo Sem_Keyword::get_keyword($i, $j); ?>" />
+								</td>
+							<?php } ?>
+							<td>
+								<a href="#" targer="_blank"><i class="fa fa-eye"></i></a>
+							</td>
+						</tr>
+						<?php } ?>
+					<?php } else { ?>
+					    <?php $varname_count = 5; ?>
+						<tr class="row-tab" data-line="">
+							<td><input type="checkbox" class="check" name="lp_item[]" value="" autocomplete="off"></td>
+							<td>
+								<input type="text" readonly name="url[1]" placeholder="url1" class="sem_table temporary_url url1"/>
+							</td>
+							<?php for($j = 1 ; $j <= $varname_count ; $j++) { ?>
+								<td>
+									<input type="text" name="keyword[1][<?php echo $j; ?>]" placeholder="variable1.<?php echo $j; ?>" class="sem_table" data_var="variable<?php echo $j; ?>" value="" />
+								</td>
+							<?php } ?>
+							<td>
+								<a href="#" targer="_blank"><i class="fa fa-eye"></i></a>
+							</td>
+						</tr>
+					<?php } ?>
+				</tbody>
+			
+				<tfoot>
+					
+				</tfoot>
+			
+			</table>
+			<br>
+			<div class="add-line">
+				<button class="btn btn-primary pull-left" id="remove_line">Supprimer la ligne</button>
+				<button class="btn btn-primary pull-right" id="add_line">Ajouter une ligne</button>
+			</div>
+			
+			<p>Activer / Désactiver les variantes</p>
+			<div class="">
+				<label class="switch" id="switch">
+			    	<input class="switch-input" type="checkbox" name="sem_active" <?php echo ((get_option('sem_active') == 'on') ? 'checked':''); ?>/>
+			    	<span class="switch-label" data-on="On" data-off="Off"></span> 
+			    	<span class="switch-handle"></span> 
+			    </label>
+			</div>
+		</div>
+		<script type="text/javascript">
+			$('#add_line').click(function(event){
+				event.preventDefault();
+				var last_line = $('tbody .row-tab:last').attr('data-line');
+				var line = parseInt(last_line) + 1;
+				var html = '';
+				html += '<tr class="row-tab" data-line="'+line+'"><td><input type="checkbox" class="check" name="lp_item[]" value="<?php echo "'+line+'"; ?>" autocomplete="off"></td><td><input type="text" readonly name="url["'+line+'"]" placeholder="url"'+line+'" class="sem_table temporary_url url"'+line+'"/></td>';
+				for(var i = 1 ; i<=5 ; i++){
+					html += '<td><input type="text" name="keyword['+line+']['+i+']" placeholder="variable'+line+'.'+i+'" class="sem_table" data_var="variable'+i+'" value=""/></td>';
+				}
+				html += '<td><a href="#" class="disabled" targer="_blank"><i class="fa fa-eye"></i></a></td>';
+				html += '</tr>';	
+		        $('#sem_variables_table tbody').append(html);
+		    });
+		</script>
 	    <?php
 	}
 	//------------------------ end ------------------------//
@@ -328,56 +317,118 @@ class Landing_Page_Info
 			update_option('page_dropdown', $_POST['page_dropdown'], true);
 			update_option('primary_url', $_POST['primary_url'], true);
 			update_option('modal_url', $_POST['modal_url'], true);
+			update_option('sem_active', $_POST['sem_active'], true);
+			update_option('sem_title', $_POST['sem_title'], true);
 		}
 	}
 	
-	
-    public function save_variables()
+    public static function data_in_head($text)
     {
-    	if(isset($_POST['keyword'])){
-    			
-    	}
+    	global $wp_query;
+		$page_id = get_option('page_dropdown');
+		$pattern = '/\[variable[0-9]\]/';
+		$matches = preg_match_all($pattern, $text, $array);			
+		
+		$row = $wp_query->query_vars['row'];
+		
+		$remplacements = array();
+		foreach($array[0] as $key=>$value)
+		{
+			$remplacements[$key] = Sem_Keyword::get_keyword($row, $value[strlen($value)-1]);
+		}
+
+		return str_replace($array[0], $remplacements, $text);
     }
-	
+
+	function replace_text_sem_wps($text){
+		global $post;
+        $page_id = get_option('page_dropdown');
+      
+        if($page_id == $post->ID){
+			return self::data_in_head($text);
+        }
+	}
+
+	function change_the_title() {
+		global $post;
+        $page_id = get_option('page_dropdown');
+      
+        if($page_id == $post->ID && get_option('sem_title') == 'on'){
+	    	return self::data_in_head(get_post_meta($page_id, "_sem_tools_title", true));
+        }	
+	}
+
 	public function add_meta_tags() 
 	{
-	  global $post;
-      $page_id = get_option('page_dropdown');
+	    global $post;
+        $page_id = get_option('page_dropdown');
       
-      if($page_id == $post->ID){
-            $title = get_post_meta($page_id, '_sem_tools_title');
-	        echo '<meta name="description" content="'.get_post_meta($page_id, "_sem_tools_description").'">';
-	        echo '<meta name="keywords" content="'.get_post_meta($page_id, '_sem_tools_keywords').'">';
-      } 
+        if($page_id == $post->ID){       	
+			
+	        add_action('get_header', array($this, 'add_title'), 100);
+		    add_action('get_header', array($this, 'add_description'), 100);
+		    add_action('get_header', array($this, 'add_keywords'), 100); 
+		    add_action('get_footer', array($this, 'title_wordpress_in_footer'), 100); 
+		    add_action('wp_footer', function(){ ob_end_flush(); }, 100);
+        } 
 	}
 	
-	public function change_the_title() {
-		$sem_title = get_option('meta_title');
-		$wp_title = get_option('blogname').' | '.get_option('blogdescription');
-		if($page_id == $post->ID){
-			//update_option('meta_title', $wp_title);
-		//	update_option('blogname', "");
-	     //  update_option('blogdescription', $sem_title, true);
-		} else {
-			//list($blogname, $blogdescription) = split(' | ', $wp_title);
-			//update_option('blogname', $blogname, true);
-	        //update_option('blogdescription', $blogdescription, true);
-		}
-        return "Je suis le titre du blogue";
-    }
-    
-	public function remove_meta_generators($html) {
-        $pattern = '/<meta name(.*)=(.*)"generator"(.*)>/i';
-        $html = preg_replace($pattern, '', $html);
-        return $html;
-    }
-    
-    public function clean_meta_generator($html) {
-        ob_start('remove_meta_generators');
-    }
-    
-    public function get_sem_meta_keywords() {
-    	
-    }
+	public function add_meta_tag_title($html) {
+		global $post;
+        $page_id = get_option('page_dropdown');
+	    $pattern = '/<meta name(.*)=(.*)"title"(.*)>/i';
+	    $pattern_title = '/<\/title>/i';
+	    if(preg_match($pattern, $html)){
+	    	$html = preg_replace($pattern, '</title><meta name="title" content="'.self::data_in_head(get_post_meta($page_id, "_sem_tools_title", true)).'">', $html);	
+	    }else{
+	    	$html = preg_replace($pattern_title, '</title><meta name="title" content="'.self::data_in_head(get_post_meta($page_id, "_sem_tools_title", true)).'">', $html);
+	    }
+	    return $html;
+	}
+
+	public function add_title($html) {
+	    ob_start(array($this, 'add_meta_tag_title'));
+	}
+
+	public function add_meta_tag_description($html) {
+        $page_id = get_option('page_dropdown');
+	    $pattern = '/<meta name(.*)=(.*)"description"(.*)>/i';
+	    $pattern_title = '/<\/title>/i';
+	    if(preg_match($pattern, $html)){
+	    	$html = preg_replace($pattern, '</title><meta name="description" content="'.self::data_in_head(get_post_meta($page_id, "_sem_tools_description", true)).'">', $html);	
+	    }else{
+	    	$html = preg_replace($pattern_title, '</title><meta name="description" content="'.self::data_in_head(get_post_meta($page_id, "_sem_tools_description", true)).'">', $html);
+	    }
+	    return $html;
+	}
+
+	public function add_description($html) {
+	    ob_start(array($this, 'add_meta_tag_description'));
+	}
+
+	public function add_meta_tag_keywords($html) {
+        $page_id = get_option('page_dropdown');
+	    $pattern = '/<meta name(.*)=(.*)"keywords"(.*)>/i';
+	    $pattern_title = '/<\/title>/i';
+	    if(preg_match($pattern, $html)){
+	    	$html = preg_replace($pattern, '</title><meta name="keywords" content="'.self::data_in_head(get_post_meta($page_id, '_sem_tools_keywords', true)).'">', $html);	
+	    }else{
+	    	$html = preg_replace($pattern_title, '</title><meta name="keywords" content="'.self::data_in_head(get_post_meta($page_id, '_sem_tools_keywords', true)).'">', $html);
+	    }
+	    return $html;
+	}
+
+	public function add_keywords($html) {
+	    ob_start(array($this, 'add_meta_tag_keywords'));
+	}
+	
+	public function oz_alter_wp_admin_bottom_left_text( $text ) {
+		return sprintf( __( 'Dynamic SEM © <a href="%s" title="Alternateeve Technology" target="_blank">Alternateeve Technology</a> Inc.' ), 'https://www.alternateeve.com' );
+	}
+	
+	public function oz_admin_dashboard_footer_right() {
+	    remove_filter( 'update_footer', 'core_update_footer' );
+	}
+	
 }
 
